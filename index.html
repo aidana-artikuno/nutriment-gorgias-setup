@@ -87,7 +87,7 @@
     fieldset { border: 0; padding: 0; margin: 0 0 16px; }
     legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
     span.req::after, legend.req::after { content: " *"; color: var(--danger); }
-    label.field { display: block; margin: 0 0 14px; font-weight: 500; }
+    .field { display: block; margin: 0 0 14px; font-weight: 500; }
     input[type="text"], input[type="email"], input[type="number"], textarea, select {
       width: 100%;
       margin-top: 6px;
@@ -99,6 +99,13 @@
       background: #fff;
     }
     textarea { min-height: 88px; resize: vertical; }
+    textarea.roomy { min-height: 200px; }
+    .file-list { list-style: none; padding: 0; margin: 12px 0 0; }
+    .file-list li {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 8px 0; border-top: 1px solid var(--line); font-weight: 500;
+    }
+    .file-list button { padding: 6px 12px; }
     input:focus, textarea:focus, select:focus, button:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: 2px;
@@ -262,6 +269,7 @@
       ["Refunds and offers", "money"],
       ["Check the public policies", "policies"],
       ["Hours and handover", "hours"],
+      ["Anything else", "extra"],
       ["Review and send", "review"]
     ];
 
@@ -281,13 +289,16 @@
         disclose: "yes", tone: "keep", toneNote: "", names: "keep", namesNote: "",
         policies: {}, gaps: {}, hoursOk: {}, hoursText: {},
         sameRules: "", differNote: "",
-        handoverD2c: "", handoverTrade: "", approver: ""
+        handoverD2c: "", handoverTrade: "", approver: "",
+        extra: ""
       };
     }
 
     let state = load();
     let step = 0;
     let error = "";
+    let fileNote = "";
+    let pendingFiles = [];
 
     function load() {
       try {
@@ -330,10 +341,25 @@
         <section class="section" id="s-money">${moneyStep()}</section>
         <section class="section" id="s-policies">${policiesStep()}</section>
         <section class="section" id="s-hours">${hoursStep()}</section>
+        <section class="section" id="s-extra">${extraStep()}</section>
         <div class="actions">
           <button type="button" class="primary" id="next">Send answers</button>
         </div>`;
       document.getElementById("next").onclick = onNext;
+      document.getElementById("addfiles").onclick = () => document.getElementById("filepick").click();
+      document.getElementById("filepick").onchange = (e) => {
+        addFiles(e.target.files);
+        e.target.value = "";
+      };
+      document.querySelectorAll("[data-remove-file]").forEach((btn) => {
+        btn.onclick = () => {
+          read();
+          pendingFiles.splice(Number(btn.dataset.removeFile), 1);
+          fileNote = "";
+          render();
+          document.getElementById("s-extra")?.scrollIntoView({ block: "nearest" });
+        };
+      });
       if (error) document.querySelector(".error").scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
@@ -378,7 +404,24 @@
       state.handoverD2c = val("handoverD2c");
       state.handoverTrade = val("handoverTrade");
       state.approver = val("approver");
+      state.extra = val("extra");
       save();
+    }
+
+    function addFiles(list) {
+      read();
+      const okExt = /\.(pdf|docx|doc)$/i;
+      const skipped = [];
+      for (const file of list) {
+        if (!okExt.test(file.name)) { skipped.push(file.name); continue; }
+        const same = pendingFiles.some((f) => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified);
+        if (!same) pendingFiles.push(file);
+      }
+      fileNote = skipped.length
+        ? "Only PDF, DOC, and DOCX files can be attached. Not added: " + skipped.join(", ")
+        : "";
+      render();
+      document.getElementById("s-extra")?.scrollIntoView({ block: "nearest" });
     }
 
     function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
@@ -430,40 +473,84 @@
       btn.textContent = "Sending…";
       const payload = exportPayload();
       const summary = toSummary(payload);
+      const fields = {
+        _subject: "Gorgias setup answers — " + payload.name,
+        _template: "table",
+        _captcha: "false",
+        _replyto: (payload.others.match(/[^\s,;]+@[^\s,;]+/) || [])[0] || "",
+        name: payload.name,
+        email: (payload.others.match(/[^\s,;]+@[^\s,;]+/) || [""])[0],
+        role: payload.role,
+        summary,
+        answers_json: JSON.stringify(payload)
+      };
       try {
-        const res = await fetch(ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({
-            _subject: "Gorgias setup answers — " + payload.name,
-            _template: "table",
-            _captcha: "false",
-            _replyto: (payload.others.match(/[^\s,;]+@[^\s,;]+/) || [])[0] || "",
-            name: payload.name,
-            email: (payload.others.match(/[^\s,;]+@[^\s,;]+/) || [""])[0],
-            role: payload.role,
-            summary,
-            answers_json: JSON.stringify(payload)
-          })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok || String(data.success) === "false") {
-          throw new Error(data.message || "The form service did not accept the answers.");
+        await postFields(fields, []);
+        const failed = [];
+        const batches = fileBatches(pendingFiles);
+        for (let i = 0; i < batches.length; i++) {
+          try {
+            await postFields({
+              _subject: "Gorgias setup files — " + payload.name + " — " + (i + 1) + " of " + batches.length,
+              _captcha: "false",
+              _template: "table",
+              name: payload.name,
+              files: batches[i].map((f) => f.name).join(", ")
+            }, batches[i]);
+          } catch (err) {
+            batches[i].forEach((f) => failed.push(f.name));
+          }
         }
         localStorage.removeItem(DRAFT_KEY);
-        showThanks(summary, true);
+        const note = failed.length
+          ? " These files were too large to send: " + failed.join(", ") + ". Email them to aidana@artikunocommerce.com."
+          : "";
+        showThanks(summary, true, note);
       } catch (err) {
         error = "We could not send just now (" + err.message + "). Copy the summary below and email it to aidana@artikunocommerce.com.";
         showThanks(summary, false);
       }
     }
 
-    function showThanks(summary, ok) {
+    function fileBatches(files) {
+      const limit = 3.5 * 1024 * 1024;
+      const batches = [];
+      let batch = [];
+      let size = 0;
+      files.forEach((file) => {
+        if (batch.length && size + file.size > limit) {
+          batches.push(batch);
+          batch = [];
+          size = 0;
+        }
+        batch.push(file);
+        size += file.size;
+      });
+      if (batch.length) batches.push(batch);
+      return batches;
+    }
+
+    async function postFields(fields, files) {
+      const body = new FormData();
+      Object.entries(fields).forEach(([key, value]) => body.append(key, value == null ? "" : String(value)));
+      files.forEach((file) => body.append("attachment", file, file.name));
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || String(data.success) === "false") {
+        throw new Error(data.message || "The form service did not accept the answers.");
+      }
+    }
+
+    function showThanks(summary, ok, fileNoteText) {
       document.getElementById("progress").innerHTML = "";
       document.getElementById("form").innerHTML = `
         <h2>${ok ? "Sent. Thank you." : "Not sent yet"}</h2>
         <p class="step-help">${ok
-          ? "Aidana has a copy. She will use it to draft the help center and the AI Agent, and will check anything marked as needing a change before it goes live."
+          ? "Aidana has a copy. She will use it to draft the help center and the AI Agent, and will check anything marked as needing a change before it goes live." + esc(fileNoteText || "")
           : esc(error)}</p>
         <div class="summary" id="summary">${esc(summary)}</div>
         <div class="actions"><button type="button" class="primary" id="copy">Copy summary</button></div>`;
@@ -623,6 +710,25 @@
         <label class="field"><span class="req">Who approves the AI before it is switched on? Email</span><input name="approver" type="email" value="${esc(state.approver)}"></label>`;
     }
 
+    function extraStep() {
+      const files = pendingFiles.map((file, i) => `<li>
+          <span>${esc(file.name)}</span>
+          <button type="button" class="ghost" data-remove-file="${i}">Remove</button>
+        </li>`).join("");
+      return `<h2>Anything else</h2>
+        <p class="step-help">Add anything else we should know, and attach any PDFs or Word documents you want us to have. There is no limit on how much you write, or how many files you add.</p>
+        <label class="field">Anything else
+          <textarea class="roomy" name="extra" placeholder="Policies, exceptions, links, or context that did not fit above.">${esc(state.extra)}</textarea>
+        </label>
+        <div class="field">
+          <span>PDFs or Word documents</span>
+          <input id="filepick" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden>
+          <div style="margin-top:8px"><button type="button" class="ghost" id="addfiles">Add files</button></div>
+          ${files ? `<ul class="file-list">${files}</ul>` : ""}
+          ${fileNote ? `<span class="hint">${esc(fileNote)}</span>` : `<span class="hint">PDF, DOC, or DOCX. Add as many as you need. You can choose several at once, then add more.</span>`}
+        </div>`;
+    }
+
     function reviewStep() {
       const payload = exportPayload();
       return `<h2>Review and send</h2>
@@ -658,6 +764,8 @@
         names: state.names, namesNote: state.namesNote,
         sameRulesForAllBrands: state.sameRules, differences: state.differNote,
         handoverD2c: state.handoverD2c, handoverTrade: state.handoverTrade, approver: state.approver,
+        extra: state.extra,
+        attachments: pendingFiles.map((file) => file.name),
         brands
       };
     }
@@ -680,6 +788,10 @@
       lines.push("Customer handover: " + p.handoverD2c);
       lines.push("Trade handover: " + (p.handoverTrade || "—"));
       lines.push("Approver: " + p.approver);
+      lines.push("");
+      lines.push("Anything else");
+      lines.push(p.extra || "—");
+      lines.push("Files: " + ((p.attachments && p.attachments.length) ? p.attachments.join(", ") : "None"));
       lines.push("");
       lines.push("Handling");
       Object.entries(p.handling).forEach(([k, v]) => lines.push("- " + k + ": " + v));
