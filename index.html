@@ -56,19 +56,18 @@
       flex-wrap: wrap;
       margin: 22px 0 8px;
     }
-    .progress button {
-      appearance: none;
+    .progress a {
       border: 1px solid var(--line);
-      background: transparent;
-      color: var(--muted);
+      background: #fff;
+      color: var(--accent);
       border-radius: 999px;
       padding: 6px 10px;
-      font: inherit;
       font-size: 13px;
-      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
     }
-    .progress button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-    .progress button.done { background: var(--accent-soft); color: var(--accent); }
+    .section { scroll-margin-top: 16px; }
+    .section + .section { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
     main { padding-bottom: 48px; }
     .panel {
       background: var(--card);
@@ -174,7 +173,6 @@
   <header>
     <p class="eyebrow">Artikuno · The Nutriment Company</p>
     <h1>Questions for the Gorgias setup</h1>
-    <p class="lede">About 12 minutes. We already have the websites and the helpdesk, so this does not ask you to paste policies we can read ourselves. It asks for the decisions the AI Agent must follow, and for a check where a public page may be out of date.</p>
     <div class="progress" id="progress" aria-label="Sections"></div>
   </header>
   <main>
@@ -319,37 +317,25 @@
         </label>`).join("")}</div>`;
     }
 
-    function renderProgress() {
-      document.getElementById("progress").innerHTML = STEPS.map((s, i) =>
-        `<button type="button" class="${i === step ? "on" : i < step ? "done" : ""}" data-go="${i}">${i + 1}. ${s[0]}</button>`
-      ).join("");
-    }
-
     function render() {
-      renderProgress();
+      document.getElementById("progress").innerHTML = STEPS.filter((s) => s[1] !== "review").map((s, i) =>
+        `<a href="#s-${s[1]}">${i + 1}. ${s[0]}</a>`
+      ).join("");
       const form = document.getElementById("form");
-      const body = [
-        youStep, brandsStep, casesStep, moneyStep, policiesStep, hoursStep, reviewStep
-      ][step]();
       form.innerHTML = `
         ${error ? `<div class="error" role="alert">${esc(error)}</div>` : ""}
-        ${body}
+        <section class="section" id="s-you">${youStep()}</section>
+        <section class="section" id="s-brands">${brandsStep()}</section>
+        <section class="section" id="s-cases">${casesStep()}</section>
+        <section class="section" id="s-money">${moneyStep()}</section>
+        <section class="section" id="s-policies">${policiesStep()}</section>
+        <section class="section" id="s-hours">${hoursStep()}</section>
         <div class="actions">
-          <button type="button" class="ghost" id="back" ${step === 0 ? "disabled" : ""}>Back</button>
-          <button type="button" class="primary" id="next">${step === STEPS.length - 1 ? "Send answers" : "Continue"}</button>
+          <button type="button" class="primary" id="next">Send answers</button>
         </div>`;
-      document.getElementById("back").onclick = () => { if (step > 0) { read(); step -= 1; error = ""; render(); } };
       document.getElementById("next").onclick = onNext;
-      form.querySelectorAll("[data-go]").forEach(() => {});
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      if (error) document.querySelector(".error").scrollIntoView({ behavior: "smooth", block: "center" });
     }
-
-    document.getElementById("progress").addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-go]");
-      if (!btn) return;
-      const target = Number(btn.dataset.go);
-      if (target <= step) { read(); step = target; error = ""; render(); }
-    });
 
     function val(name) {
       const el = document.querySelector(`[name="${name}"]`);
@@ -361,106 +347,76 @@
     }
 
     function read() {
-      const f = document.getElementById("form");
-      if (!f.querySelector("[name='name']") && step !== 0) {
-        /* fields depend on step */
-      }
-      if (step === 0) {
-        state.name = val("name"); state.email = val("email"); state.role = val("role");
-        state.shopifyName = val("shopifyName"); state.shopifyEmail = val("shopifyEmail");
-      }
-      if (step === 1) {
-        BRANDS.forEach((b) => { state.scope[b.id] = picked("scope-" + b.id) || state.scope[b.id]; });
-        state.scopeOk = !!document.querySelector("[name='scopeOk']")?.checked;
-      }
-      if (step === 2) {
-        CASES.forEach((c) => { state.cases[c[0]] = picked("case-" + c[0]) || state.cases[c[0]]; });
-        state.casesOk = !!document.querySelector("[name='casesOk']")?.checked;
-      }
-      if (step === 3) {
-        state.aiRefund = picked("aiRefund");
-        state.refundLimit = val("refundLimit");
-        state.photos = picked("photos");
-        state.discount = picked("discount");
-        state.discountNote = val("discountNote");
-        state.disclose = picked("disclose") || state.disclose;
-        state.tone = picked("tone") || state.tone;
-        state.toneNote = val("toneNote");
-        state.names = picked("names") || state.names;
-        state.namesNote = val("namesNote");
-      }
-      if (step === 4) {
-        Object.keys(POLICIES).forEach((id) => {
-          if (!activeIds().includes(id)) return;
-          state.policies[id] = { choice: picked("pol-" + id), note: val("polnote-" + id) };
-        });
-        Object.keys(GAPS).forEach((id) => {
-          if (!activeIds().includes(id)) return;
-          state.gaps[id] = { choice: picked("gap-" + id), note: val("gapnote-" + id) };
-        });
-        state.sameRules = picked("sameRules");
-        state.differNote = val("differNote");
-      }
-      if (step === 5) {
-        activeIds().forEach((id) => {
-          state.hoursOk[id] = picked("hours-" + id);
-          state.hoursText[id] = val("hourstext-" + id);
-        });
-        state.handoverD2c = val("handoverD2c");
-        state.handoverTrade = val("handoverTrade");
-        state.approver = val("approver");
-      }
+      state.name = val("name"); state.email = val("email"); state.role = val("role");
+      state.shopifyName = val("shopifyName"); state.shopifyEmail = val("shopifyEmail");
+      BRANDS.forEach((b) => { state.scope[b.id] = picked("scope-" + b.id) || state.scope[b.id]; });
+      state.scopeOk = !!document.querySelector("[name='scopeOk']")?.checked;
+      CASES.forEach((c) => { state.cases[c[0]] = picked("case-" + c[0]) || state.cases[c[0]]; });
+      state.casesOk = !!document.querySelector("[name='casesOk']")?.checked;
+      state.aiRefund = picked("aiRefund");
+      state.refundLimit = val("refundLimit");
+      state.photos = picked("photos");
+      state.discount = picked("discount");
+      state.discountNote = val("discountNote");
+      state.disclose = picked("disclose") || state.disclose;
+      state.tone = picked("tone") || state.tone;
+      state.toneNote = val("toneNote");
+      state.names = picked("names") || state.names;
+      state.namesNote = val("namesNote");
+      Object.keys(POLICIES).forEach((id) => {
+        state.policies[id] = { choice: picked("pol-" + id), note: val("polnote-" + id) };
+      });
+      Object.keys(GAPS).forEach((id) => {
+        state.gaps[id] = { choice: picked("gap-" + id), note: val("gapnote-" + id) };
+      });
+      state.sameRules = picked("sameRules");
+      state.differNote = val("differNote");
+      BRANDS.forEach((b) => {
+        state.hoursOk[b.id] = picked("hours-" + b.id);
+        state.hoursText[b.id] = val("hourstext-" + b.id);
+      });
+      state.handoverD2c = val("handoverD2c");
+      state.handoverTrade = val("handoverTrade");
+      state.approver = val("approver");
       save();
     }
 
     function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 
     function validate() {
-      if (step === 0) {
-        if (!state.name || !state.role || !state.shopifyName) return "Please fill every required field.";
-        if (!emailOk(state.email) || !emailOk(state.shopifyEmail)) return "Please use a real email address.";
+      if (!state.name || !state.role || !state.shopifyName) return "Please fill every required field.";
+      if (!emailOk(state.email) || !emailOk(state.shopifyEmail)) return "Please use a real email address.";
+      if (!state.scopeOk) return "Please confirm the brand split, or change it first.";
+      if (!activeIds().length) return "Choose at least one brand for this build.";
+      if (CASES.some((c) => !state.cases[c[0]])) return "Choose one option on every row.";
+      if (!state.casesOk) return "Tick the confirmation under the handling table.";
+      if (!state.aiRefund || !state.photos || !state.discount || !state.disclose || !state.tone || !state.names) return "Please answer every required question.";
+      if (state.aiRefund === "under" && !(Number(state.refundLimit) > 0)) return "Enter the maximum amount AI may offer, in pounds.";
+      if (state.discount === "yes" && !state.discountNote) return "Describe the standing offer, or choose a different option. Do not invent a code.";
+      if (state.tone === "change" && !state.toneNote) return "Tell us what to change in the tone of voice.";
+      if (state.names === "change" && !state.namesNote) return "Tell us which names to use.";
+      for (const id of Object.keys(POLICIES)) {
+        if (!activeIds().includes(id)) continue;
+        if (!state.policies[id]?.choice) return "Please confirm or correct each policy for the brands in this build.";
+        if (state.policies[id].choice === "change" && !state.policies[id].note) return "Add what is wrong or missing on each policy you marked as needing a change.";
       }
-      if (step === 1) {
-        if (!state.scopeOk) return "Please confirm the brand split, or change it first.";
-        if (!activeIds().length) return "Choose at least one brand for this build.";
+      for (const id of Object.keys(GAPS)) {
+        if (!activeIds().includes(id)) continue;
+        if (!state.gaps[id]?.choice) return "Please answer the brands where we could not find a policy.";
+        if ((state.gaps[id].choice === "text" || state.gaps[id].choice === "link") && !state.gaps[id].note) return "Add the link or the rule for each brand you chose that option for.";
       }
-      if (step === 2) {
-        if (CASES.some((c) => !state.cases[c[0]])) return "Choose one option on every row.";
-        if (!state.casesOk) return "Tick the confirmation under the table.";
-      }
-      if (step === 3) {
-        if (!state.aiRefund || !state.photos || !state.discount || !state.disclose || !state.tone || !state.names) return "Please answer every required question.";
-        if (state.aiRefund === "under" && !(Number(state.refundLimit) > 0)) return "Enter the maximum amount AI may offer, in pounds.";
-        if (state.discount === "yes" && !state.discountNote) return "Describe the standing offer, or choose a different option. Do not invent a code.";
-        if (state.tone === "change" && !state.toneNote) return "Tell us what to change in the tone of voice.";
-        if (state.names === "change" && !state.namesNote) return "Tell us which names to use.";
-      }
-      if (step === 4) {
-        for (const id of Object.keys(POLICIES)) {
-          if (!activeIds().includes(id)) continue;
-          if (!state.policies[id]?.choice) return "Please confirm or correct each policy.";
-          if (state.policies[id].choice === "change" && !state.policies[id].note) return "Add what is wrong or missing on each policy you marked as needing a change.";
+      if (!state.sameRules) return "Tell us whether every selected brand follows the same handling rules.";
+      if (state.sameRules === "no" && !state.differNote) return "Name the brands that differ, and how.";
+      for (const id of activeIds()) {
+        if (HOURS[id]) {
+          if (!state.hoursOk[id]) return "Please confirm or correct the hours we found.";
+          if (state.hoursOk[id] === "change" && !state.hoursText[id]) return "Write the corrected hours.";
+        } else if (!state.hoursText[id]) {
+          return "Add support hours for each brand in this build.";
         }
-        for (const id of Object.keys(GAPS)) {
-          if (!activeIds().includes(id)) continue;
-          if (!state.gaps[id]?.choice) return "Please answer the brands where we could not find a policy.";
-          if ((state.gaps[id].choice === "text" || state.gaps[id].choice === "link") && !state.gaps[id].note) return "Add the link or the rule for each brand you chose that option for.";
-        }
-        if (!state.sameRules) return "Tell us whether every selected brand follows the same handling rules.";
-        if (state.sameRules === "no" && !state.differNote) return "Name the brands that differ, and how.";
       }
-      if (step === 5) {
-        for (const id of activeIds()) {
-          if (HOURS[id]) {
-            if (!state.hoursOk[id]) return "Please confirm or correct the hours we found.";
-            if (state.hoursOk[id] === "change" && !state.hoursText[id]) return "Write the corrected hours.";
-          } else if (!state.hoursText[id]) {
-            return "Add support hours for each brand we could not confirm.";
-          }
-        }
-        if (!emailOk(state.handoverD2c) || !emailOk(state.approver)) return "Add the handover and approver email addresses.";
-        if (needsTrade() && !emailOk(state.handoverTrade)) return "Add the trade and stockist handover email.";
-      }
+      if (!emailOk(state.handoverD2c) || !emailOk(state.approver)) return "Add the handover and approver email addresses.";
+      if (needsTrade() && !emailOk(state.handoverTrade)) return "Add the trade and stockist handover email.";
       return "";
     }
 
@@ -468,7 +424,6 @@
       read();
       error = validate();
       if (error) { render(); return; }
-      if (step < STEPS.length - 1) { step += 1; error = ""; render(); return; }
       const btn = document.getElementById("next");
       btn.disabled = true;
       btn.textContent = "Sending…";
@@ -516,7 +471,7 @@
 
     function youStep() {
       return `<h2>Who should we ask</h2>
-        <p class="step-help">One person who knows support policy can fill this in. About 12 minutes.</p>
+        <p class="step-help">One person who knows support policy can fill this in.</p>
         <div class="grid-2">
           <label class="field"><span class="req">Your name</span><input name="name" type="text" value="${esc(state.name)}" required></label>
           <label class="field"><span class="req">Your email</span><input name="email" type="email" value="${esc(state.email)}" required></label>
@@ -609,7 +564,6 @@
     function policiesStep() {
       const blocks = [];
       for (const [id, policy] of Object.entries(POLICIES)) {
-        if (!activeIds().includes(id)) continue;
         const cur = state.policies[id] || {};
         blocks.push(`<div class="policy"><strong>${esc(policy.title)}</strong><p>${policy.html}</p>
           ${radios("pol-" + id, cur.choice || "", [["ok", "This is correct. Use it."], ["change", "Something needs a change."]])}
@@ -617,7 +571,6 @@
         </div>`);
       }
       for (const [id, title] of Object.entries(GAPS)) {
-        if (!activeIds().includes(id)) continue;
         const cur = state.gaps[id] || {};
         blocks.push(`<div class="policy"><strong>${esc(title)}</strong>
           ${radios("gap-" + id, cur.choice || "", [
@@ -630,7 +583,7 @@
         </div>`);
       }
       return `<h2>Check the pages we found</h2>
-        <p class="step-help">Only brands you included above are listed. Say if a page is out of date. You do not need to rewrite a page that is already right.</p>
+        <p class="step-help">Every brand is listed. Say if a page is out of date. You do not need to rewrite a page that is already right.</p>
         ${blocks.join("") || "<p>No brands selected.</p>"}
         <fieldset>
           <legend class="req">Do all of the selected brands follow the handling table you just approved?</legend>
@@ -643,8 +596,9 @@
     }
 
     function hoursStep() {
-      const rows = activeIds().map((id) => {
-        const brand = BRANDS.find((b) => b.id === id);
+      const rows = BRANDS.map((b) => {
+        const id = b.id;
+        const brand = b;
         if (HOURS[id]) {
           return `<div class="policy"><strong>${esc(brand.name)}</strong>
             <p>${esc(HOURS[id])}</p>
@@ -739,7 +693,6 @@
     }
 
     if (location.hash === "#review") {
-      document.querySelector("header .lede").textContent = "Paste a submitted answers JSON to read it as a setup brief.";
       document.getElementById("progress").innerHTML = "";
       document.getElementById("form").innerHTML = `
         <h2>Review a response</h2>
