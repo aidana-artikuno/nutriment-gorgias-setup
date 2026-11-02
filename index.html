@@ -274,7 +274,7 @@
       CASES.forEach((c) => { cases[c[0]] = c[2]; });
       return {
         v: 1,
-        name: "", email: "", role: "", shopifyName: "", shopifyEmail: "",
+        name: "", role: "", others: "", shopifyName: "", shopifyEmail: "",
         scope, scopeOk: false,
         cases, casesOk: false,
         aiRefund: "", refundLimit: "", photos: "", discount: "", discountNote: "",
@@ -347,7 +347,7 @@
     }
 
     function read() {
-      state.name = val("name"); state.email = val("email"); state.role = val("role");
+      state.name = val("name"); state.role = val("role"); state.others = val("others");
       state.shopifyName = val("shopifyName"); state.shopifyEmail = val("shopifyEmail");
       BRANDS.forEach((b) => { state.scope[b.id] = picked("scope-" + b.id) || state.scope[b.id]; });
       state.scopeOk = !!document.querySelector("[name='scopeOk']")?.checked;
@@ -385,7 +385,8 @@
 
     function validate() {
       if (!state.name || !state.role || !state.shopifyName) return "Please fill every required field.";
-      if (!emailOk(state.email) || !emailOk(state.shopifyEmail)) return "Please use a real email address.";
+      if (state.others && !state.others.includes("@")) return "Add an email address for anyone else who should fill this in.";
+      if (!emailOk(state.shopifyEmail)) return "Please use a real email address for the Shopify contact.";
       if (!state.scopeOk) return "Please confirm the brand split, or change it first.";
       if (!activeIds().length) return "Choose at least one brand for this build.";
       if (CASES.some((c) => !state.cases[c[0]])) return "Choose one option on every row.";
@@ -437,9 +438,9 @@
             _subject: "Gorgias setup answers — " + payload.name,
             _template: "table",
             _captcha: "false",
-            _replyto: payload.email,
+            _replyto: (payload.others.match(/[^\s,;]+@[^\s,;]+/) || [])[0] || "",
             name: payload.name,
-            email: payload.email,
+            email: (payload.others.match(/[^\s,;]+@[^\s,;]+/) || [""])[0],
             role: payload.role,
             summary,
             answers_json: JSON.stringify(payload)
@@ -471,12 +472,13 @@
 
     function youStep() {
       return `<h2>Who should we ask</h2>
-        <p class="step-help">One person who knows support policy can fill this in.</p>
         <div class="grid-2">
           <label class="field"><span class="req">Your name</span><input name="name" type="text" value="${esc(state.name)}" required></label>
-          <label class="field"><span class="req">Your email</span><input name="email" type="email" value="${esc(state.email)}" required></label>
+          <label class="field"><span class="req">Your role</span><input name="role" type="text" value="${esc(state.role)}" placeholder="For example, Customer service lead"></label>
         </div>
-        <label class="field"><span class="req">Your role</span><input name="role" type="text" value="${esc(state.role)}" placeholder="For example, Customer service lead"></label>
+        <label class="field">If anyone else should fill this in, add their name and email
+          <textarea name="others" placeholder="Name and email. One person per line. Leave blank if you are answering the whole form.">${esc(state.others)}</textarea>
+        </label>
         <h3>Shopify connection</h3>
         <p class="step-help">All seven Shopify stores in Gorgias still need a permissions update before the AI can see orders. Who can approve that?</p>
         <div class="grid-2">
@@ -644,7 +646,7 @@
       return {
         v: 1,
         submittedHint: new Date().toISOString(),
-        name: state.name, email: state.email, role: state.role,
+        name: state.name, role: state.role, others: state.others,
         shopifyContact: { name: state.shopifyName, email: state.shopifyEmail },
         handling, handlingConfirmed: state.casesOk,
         aiMayPromiseRemedy: state.aiRefund,
@@ -663,7 +665,8 @@
     function toSummary(p) {
       const lines = [];
       lines.push("Gorgias setup answers — The Nutriment Company");
-      lines.push(p.name + " · " + p.role + " · " + p.email);
+      lines.push(p.name + " · " + p.role);
+      lines.push("Anyone else filling this in: " + (p.others || "No"));
       lines.push("Shopify permissions: " + p.shopifyContact.name + " · " + p.shopifyContact.email);
       lines.push("");
       lines.push("AI may promise a remedy: " + (p.aiMayPromiseRemedy === "under" ? "under £" + p.remedyLimitGbp : "no"));
