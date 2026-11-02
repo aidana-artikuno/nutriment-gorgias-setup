@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gorgias setup questions — The Nutriment Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1c1a33;
+      --muted: #5e5a78;
+      --line: #e3dfec;
+      --paper: #f4f3f8;
+      --card: #ffffff;
+      --accent: #292560;
+      --accent-soft: #efedf6;
+      --danger: #8d2f2a;
+      --danger-soft: #fdeceb;
+      --ok: #1f6b45;
+      --shadow: 0 1px 0 rgba(28, 26, 51, 0.04);
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Outfit, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    header, main, footer { width: min(920px, calc(100% - 32px)); margin: 0 auto; }
+    header { padding: 36px 0 8px; }
+    .eyebrow {
+      margin: 0 0 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    h1 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(32px, 4vw, 44px);
+      line-height: 1.1;
+      font-weight: 560;
+      margin: 0 0 12px;
+    }
+    .lede { margin: 0; max-width: 68ch; color: var(--muted); font-size: 17px; }
+    .progress {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 22px 0 8px;
+    }
+    .progress button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .progress button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .progress button.done { background: var(--accent-soft); color: var(--accent); }
+    main { padding-bottom: 48px; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    h2 {
+      font-family: Fraunces, Georgia, serif;
+      font-size: 28px;
+      font-weight: 560;
+      margin: 0 0 6px;
+    }
+    .step-help { color: var(--muted); margin: 0 0 18px; }
+    h3 { font-size: 16px; margin: 22px 0 8px; }
+    fieldset { border: 0; padding: 0; margin: 0 0 16px; }
+    legend { font-weight: 600; padding: 0; margin-bottom: 8px; }
+    span.req::after, legend.req::after { content: " *"; color: var(--danger); }
+    label.field { display: block; margin: 0 0 14px; font-weight: 500; }
+    input[type="text"], input[type="email"], input[type="number"], textarea, select {
+      width: 100%;
+      margin-top: 6px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 11px 12px;
+      font: inherit;
+      color: inherit;
+      background: #fff;
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    input:focus, textarea:focus, select:focus, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .brand-row, .case {
+      display: grid;
+      grid-template-columns: minmax(180px, 1.2fr) 2fr;
+      gap: 10px 16px;
+      align-items: center;
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+    }
+    .brand-row:first-of-type, .case:first-of-type { border-top: 0; }
+    .options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .options label, .stack label.pick {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-weight: 500;
+      background: #fff;
+      cursor: pointer;
+    }
+    .options label:has(input:checked), .stack label.pick:has(input:checked) {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .stack { display: grid; gap: 8px; }
+    .hint { display: block; color: var(--muted); font-weight: 400; font-size: 13px; margin-top: 4px; }
+    .suggested { font-size: 12px; color: var(--ok); font-weight: 600; }
+    .policy {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin: 0 0 12px;
+      background: #fafafc;
+    }
+    .policy p { margin: 6px 0 10px; }
+    .policy a { color: var(--accent); }
+    .error {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 0 0 14px;
+    }
+    .actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
+    button.primary, button.ghost {
+      font: inherit;
+      font-weight: 600;
+      border-radius: 999px;
+      padding: 11px 16px;
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); color: #fff; border: 0; }
+    button.ghost { background: #fff; border: 1px solid var(--line); color: var(--ink); }
+    button:disabled { opacity: 0.55; cursor: wait; }
+    .checkline { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; margin-top: 8px; }
+    footer { color: var(--muted); font-size: 13px; padding: 0 0 40px; }
+    .summary { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--paper); border-radius: 10px; padding: 12px; }
+    .hidden { display: none !important; }
+    @media (max-width: 720px) {
+      .grid-2, .brand-row, .case { grid-template-columns: 1fr; }
+      header, main, footer { width: min(920px, calc(100% - 20px)); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">Artikuno · The Nutriment Company</p>
+    <h1>Questions for the Gorgias setup</h1>
+    <p class="lede">About 12 minutes. We already have the websites and the helpdesk, so this does not ask you to paste policies we can read ourselves. It asks for the decisions the AI Agent must follow, and for a check where a public page may be out of date.</p>
+    <div class="progress" id="progress" aria-label="Sections"></div>
+  </header>
+  <main>
+    <form id="form" class="panel" novalidate></form>
+  </main>
+  <footer>
+    Answers are sent to Aidana at Artikuno and stored on this browser until you send them. Please do not include customer names, order details, or card numbers.
+  </footer>
+  <script>
+    const DRAFT_KEY = "nutriment-gorgias-questionnaire-v1";
+    const ENDPOINT = "https://formsubmit.co/ajax/aidana@artikunocommerce.com";
+
+    const BRANDS = [
+      { id: "ni", name: "Natural Instinct — customers", def: "full" },
+      { id: "niStock", name: "Natural Instinct — stockists", def: "narrow" },
+      { id: "nr", name: "Nutriment — customers", def: "full" },
+      { id: "nrTrade", name: "Nutriment — trade", def: "narrow" },
+      { id: "ypn", name: "Your Pet Nutrition", def: "full" },
+      { id: "tdb", name: "The Dogs Butcher", def: "full" },
+      { id: "nnt", name: "Natural Treats", def: "full" },
+      { id: "ptw", name: "Pet Treats Wholesale", def: "later" },
+      { id: "dibo", name: "DIBO", def: "later" },
+      { id: "bulmer", name: "Bulmer", def: "later" },
+      { id: "aniforte", name: "AniForte", def: "later" },
+      { id: "purrform", name: "Purrform", def: "later" }
+    ];
+
+    const CASES = [
+      ["wismo", "Where is my order, or a tracking question", "close", "This is a large part of the inbox. AI can answer once Shopify order access is updated."],
+      ["feeding", "Feeding or product questions that are already answered on the brand website", "close", ""],
+      ["edit", "Change or cancel an order before it leaves the warehouse", "close", ""],
+      ["missing", "Something was missing from the delivery", "draft", ""],
+      ["damage", "Box damaged, or frozen food arrived thawed", "draft", "AI can ask for photos. A person chooses refund or replacement."],
+      ["refund", "Customer asks for a refund or a replacement", "human", ""],
+      ["health", "Pet health, symptoms, or whether a food is safe for a condition", "human", ""],
+      ["grief", "Customer says their pet has died", "human", ""],
+      ["quality", "Quality complaint: mould, foreign body, or illness after eating", "human", ""],
+      ["trade", "Trade price, credit terms, or opening a wholesale account", "human", ""],
+      ["stockist", "New stockist application", "human", ""],
+      ["discount", "Discount code, price match, or current offer", "human", ""],
+      ["angry", "Legal threat, press, or a very angry complaint", "human", ""]
+    ];
+
+    const POLICIES = {
+      ni: {
+        title: "Natural Instinct",
+        html: `Contact within 7 days of delivery. Frozen food is not accepted back (dispose of it, or donate it if it is safe). No refund if the pet simply does not like the food. A purchase from a stockist goes back to that stockist. Refunds show in 3–5 business days. Delivery is DPD, minimum 5kg, free from 10kg otherwise £7.50, order by 1pm Monday–Thursday for next day. No shipping to Northern Ireland or the Republic of Ireland. An order cannot be changed after dispatch. <a href="https://naturalinstinct.com/pages/returns-refunds-policy" target="_blank" rel="noopener">Returns</a> · <a href="https://naturalinstinct.com/pages/shipping-delivery-uk-1" target="_blank" rel="noopener">Delivery</a>`
+      },
+      nr: {
+        title: "Nutriment customers",
+        html: `The published page says: tell them within 14 days; items unused, undamaged, in original packaging; return to Nutriment Ltd, Enterprise House, Bridge Road, Camberley, GU15 2QR; refund within 14 days of receiving the goods. Courier orders under 5kg are collection only. They say they are not liable if the customer changes the courier date and the food thaws. This page reads like a standard shop template, so please confirm it is really how frozen food is handled. <a href="https://www.nutriment.co.uk/pages/returns-refunds" target="_blank" rel="noopener">Returns</a> · <a href="https://www.nutriment.co.uk/pages/shipping-information" target="_blank" rel="noopener">Shipping</a>`
+      },
+      nrTrade: {
+        title: "Nutriment trade",
+        html: `Trade page: the product must be unused and still frozen. Email management@nutriment.co with the product name, batch number and reason. Return by next-day courier. <a href="https://trade.nutriment.co.uk/policies/shipping-policy" target="_blank" rel="noopener">Trade shipping and returns</a>`
+      },
+      ypn: {
+        title: "Your Pet Nutrition",
+        html: `90-day guarantee, up to £300 per order: replacement, store credit, or reimbursement. The customer pays return postage. This reads as a supplement policy, not frozen raw food. <a href="https://yourpetnutrition.com/policies/refund-policy" target="_blank" rel="noopener">Refund policy</a>`
+      },
+      tdb: {
+        title: "The Dogs Butcher",
+        html: `DPD. Raw orders minimum 7kg. They allow 48 hours for delivery. Do not change the delivery after dispatch or the courier may destroy the box. Nothing can be added after the order is placed. A cancellation after packing can cost £10. We did not find a separate returns page. <a href="https://www.thedogsbutcher.co.uk/pages/courier-information" target="_blank" rel="noopener">Courier rules</a>`
+      },
+      bulmer: {
+        title: "Bulmer",
+        html: `7 days from receipt. Unopened, undamaged, original packaging. The buyer pays the return to Unit 5 Six Hills Ind Est, Paddys Lane, Old Dalby, Leicester, LE14 3LY. <a href="https://bulmerdogfood.co.uk/returns-policy/" target="_blank" rel="noopener">Returns policy</a>`
+      }
+    };
+
+    const GAPS = {
+      nnt: "Natural Treats — we did not find a returns page on the website.",
+      ptw: "Pet Treats Wholesale — we did not find a public returns page to rely on.",
+      dibo: "DIBO — we did not find a public returns page to rely on.",
+      aniforte: "AniForte — we did not find a public returns page on this helpdesk’s brands.",
+      purrform: "Purrform — there is no store website connected in Gorgias."
+    };
+
+    const HOURS = {
+      ni: "Website: Monday–Friday 9:00–17:00. The shop also does collection Saturday 10:00–14:30. We are not sure the inbox is staffed on Saturday."
+    };
+
+    const STEPS = [
+      ["You", "you"],
+      ["Brands", "brands"],
+      ["What AI may do", "cases"],
+      ["Refunds and offers", "money"],
+      ["Check the public policies", "policies"],
+      ["Hours and handover", "hours"],
+      ["Review and send", "review"]
+    ];
+
+    const CASE_LABEL = { close: "AI replies and closes", draft: "AI drafts, a person sends", human: "Always a person" };
+
+    function blank() {
+      const scope = {};
+      BRANDS.forEach((b) => { scope[b.id] = b.def; });
+      const cases = {};
+      CASES.forEach((c) => { cases[c[0]] = c[2]; });
+      return {
+        v: 1,
+        name: "", email: "", role: "", shopifyName: "", shopifyEmail: "",
+        scope, scopeOk: false,
+        cases, casesOk: false,
+        aiRefund: "", refundLimit: "", photos: "", discount: "", discountNote: "",
+        disclose: "yes", tone: "keep", toneNote: "", names: "keep", namesNote: "",
+        policies: {}, gaps: {}, hoursOk: {}, hoursText: {},
+        sameRules: "", differNote: "",
+        handoverD2c: "", handoverTrade: "", approver: ""
+      };
+    }
+
+    let state = load();
+    let step = 0;
+    let error = "";
+
+    function load() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+        if (saved && saved.v === 1) return Object.assign(blank(), saved);
+      } catch (e) {}
+      return blank();
+    }
+    function save() {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(state));
+    }
+    function activeIds() {
+      return BRANDS.filter((b) => state.scope[b.id] !== "later").map((b) => b.id);
+    }
+    function needsTrade() {
+      return ["niStock", "nrTrade", "ptw"].some((id) => state.scope[id] !== "later");
+    }
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    function radios(name, value, options) {
+      return `<div class="options">${options.map(([val, label, suggested]) => `
+        <label>
+          <input type="radio" name="${name}" value="${val}" ${value === val ? "checked" : ""}>
+          <span>${label}${suggested ? ' <span class="suggested">Suggested</span>' : ""}</span>
+        </label>`).join("")}</div>`;
+    }
+
+    function renderProgress() {
+      document.getElementById("progress").innerHTML = STEPS.map((s, i) =>
+        `<button type="button" class="${i === step ? "on" : i < step ? "done" : ""}" data-go="${i}">${i + 1}. ${s[0]}</button>`
+      ).join("");
+    }
+
+    function render() {
+      renderProgress();
+      const form = document.getElementById("form");
+      const body = [
+        youStep, brandsStep, casesStep, moneyStep, policiesStep, hoursStep, reviewStep
+      ][step]();
+      form.innerHTML = `
+        ${error ? `<div class="error" role="alert">${esc(error)}</div>` : ""}
+        ${body}
+        <div class="actions">
+          <button type="button" class="ghost" id="back" ${step === 0 ? "disabled" : ""}>Back</button>
+          <button type="button" class="primary" id="next">${step === STEPS.length - 1 ? "Send answers" : "Continue"}</button>
+        </div>`;
+      document.getElementById("back").onclick = () => { if (step > 0) { read(); step -= 1; error = ""; render(); } };
+      document.getElementById("next").onclick = onNext;
+      form.querySelectorAll("[data-go]").forEach(() => {});
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    document.getElementById("progress").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-go]");
+      if (!btn) return;
+      const target = Number(btn.dataset.go);
+      if (target <= step) { read(); step = target; error = ""; render(); }
+    });
+
+    function val(name) {
+      const el = document.querySelector(`[name="${name}"]`);
+      return el ? el.value.trim() : "";
+    }
+    function picked(name) {
+      const el = document.querySelector(`[name="${name}"]:checked`);
+      return el ? el.value : "";
+    }
+
+    function read() {
+      const f = document.getElementById("form");
+      if (!f.querySelector("[name='name']") && step !== 0) {
+        /* fields depend on step */
+      }
+      if (step === 0) {
+        state.name = val("name"); state.email = val("email"); state.role = val("role");
+        state.shopifyName = val("shopifyName"); state.shopifyEmail = val("shopifyEmail");
+      }
+      if (step === 1) {
+        BRANDS.forEach((b) => { state.scope[b.id] = picked("scope-" + b.id) || state.scope[b.id]; });
+        state.scopeOk = !!document.querySelector("[name='scopeOk']")?.checked;
+      }
+      if (step === 2) {
+        CASES.forEach((c) => { state.cases[c[0]] = picked("case-" + c[0]) || state.cases[c[0]]; });
+        state.casesOk = !!document.querySelector("[name='casesOk']")?.checked;
+      }
+      if (step === 3) {
+        state.aiRefund = picked("aiRefund");
+        state.refundLimit = val("refundLimit");
+        state.photos = picked("photos");
+        state.discount = picked("discount");
+        state.discountNote = val("discountNote");
+        state.disclose = picked("disclose") || state.disclose;
+        state.tone = picked("tone") || state.tone;
+        state.toneNote = val("toneNote");
+        state.names = picked("names") || state.names;
+        state.namesNote = val("namesNote");
+      }
+      if (step === 4) {
+        Object.keys(POLICIES).forEach((id) => {
+          if (!activeIds().includes(id)) return;
+          state.policies[id] = { choice: picked("pol-" + id), note: val("polnote-" + id) };
+        });
+        Object.keys(GAPS).forEach((id) => {
+          if (!activeIds().includes(id)) return;
+          state.gaps[id] = { choice: picked("gap-" + id), note: val("gapnote-" + id) };
+        });
+        state.sameRules = picked("sameRules");
+        state.differNote = val("differNote");
+      }
+      if (step === 5) {
+        activeIds().forEach((id) => {
+          state.hoursOk[id] = picked("hours-" + id);
+          state.hoursText[id] = val("hourstext-" + id);
+        });
+        state.handoverD2c = val("handoverD2c");
+        state.handoverTrade = val("handoverTrade");
+        state.approver = val("approver");
+      }
+      save();
+    }
+
+    function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+    function validate() {
+      if (step === 0) {
+        if (!state.name || !state.role || !state.shopifyName) return "Please fill every required field.";
+        if (!emailOk(state.email) || !emailOk(state.shopifyEmail)) return "Please use a real email address.";
+      }
+      if (step === 1) {
+        if (!state.scopeOk) return "Please confirm the brand split, or change it first.";
+        if (!activeIds().length) return "Choose at least one brand for this build.";
+      }
+      if (step === 2) {
+        if (CASES.some((c) => !state.cases[c[0]])) return "Choose one option on every row.";
+        if (!state.casesOk) return "Tick the confirmation under the table.";
+      }
+      if (step === 3) {
+        if (!state.aiRefund || !state.photos || !state.discount || !state.disclose || !state.tone || !state.names) return "Please answer every required question.";
+        if (state.aiRefund === "under" && !(Number(state.refundLimit) > 0)) return "Enter the maximum amount AI may offer, in pounds.";
+        if (state.discount === "yes" && !state.discountNote) return "Describe the standing offer, or choose a different option. Do not invent a code.";
+        if (state.tone === "change" && !state.toneNote) return "Tell us what to change in the tone of voice.";
+        if (state.names === "change" && !state.namesNote) return "Tell us which names to use.";
+      }
+      if (step === 4) {
+        for (const id of Object.keys(POLICIES)) {
+          if (!activeIds().includes(id)) continue;
+          if (!state.policies[id]?.choice) return "Please confirm or correct each policy.";
+          if (state.policies[id].choice === "change" && !state.policies[id].note) return "Add what is wrong or missing on each policy you marked as needing a change.";
+        }
+        for (const id of Object.keys(GAPS)) {
+          if (!activeIds().includes(id)) continue;
+          if (!state.gaps[id]?.choice) return "Please answer the brands where we could not find a policy.";
+          if ((state.gaps[id].choice === "text" || state.gaps[id].choice === "link") && !state.gaps[id].note) return "Add the link or the rule for each brand you chose that option for.";
+        }
+        if (!state.sameRules) return "Tell us whether every selected brand follows the same handling rules.";
+        if (state.sameRules === "no" && !state.differNote) return "Name the brands that differ, and how.";
+      }
+      if (step === 5) {
+        for (const id of activeIds()) {
+          if (HOURS[id]) {
+            if (!state.hoursOk[id]) return "Please confirm or correct the hours we found.";
+            if (state.hoursOk[id] === "change" && !state.hoursText[id]) return "Write the corrected hours.";
+          } else if (!state.hoursText[id]) {
+            return "Add support hours for each brand we could not confirm.";
+          }
+        }
+        if (!emailOk(state.handoverD2c) || !emailOk(state.approver)) return "Add the handover and approver email addresses.";
+        if (needsTrade() && !emailOk(state.handoverTrade)) return "Add the trade and stockist handover email.";
+      }
+      return "";
+    }
+
+    async function onNext() {
+      read();
+      error = validate();
+      if (error) { render(); return; }
+      if (step < STEPS.length - 1) { step += 1; error = ""; render(); return; }
+      const btn = document.getElementById("next");
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+      const payload = exportPayload();
+      const summary = toSummary(payload);
+      try {
+        const res = await fetch(ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            _subject: "Gorgias setup answers — " + payload.name,
+            _template: "table",
+            _captcha: "false",
+            _replyto: payload.email,
+            name: payload.name,
+            email: payload.email,
+            role: payload.role,
+            summary,
+            answers_json: JSON.stringify(payload)
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || String(data.success) === "false") {
+          throw new Error(data.message || "The form service did not accept the answers.");
+        }
+        localStorage.removeItem(DRAFT_KEY);
+        showThanks(summary, true);
+      } catch (err) {
+        error = "We could not send just now (" + err.message + "). Copy the summary below and email it to aidana@artikunocommerce.com.";
+        showThanks(summary, false);
+      }
+    }
+
+    function showThanks(summary, ok) {
+      document.getElementById("progress").innerHTML = "";
+      document.getElementById("form").innerHTML = `
+        <h2>${ok ? "Sent. Thank you." : "Not sent yet"}</h2>
+        <p class="step-help">${ok
+          ? "Aidana has a copy. She will use it to draft the help center and the AI Agent, and will check anything marked as needing a change before it goes live."
+          : esc(error)}</p>
+        <div class="summary" id="summary">${esc(summary)}</div>
+        <div class="actions"><button type="button" class="primary" id="copy">Copy summary</button></div>`;
+      document.getElementById("copy").onclick = () => navigator.clipboard.writeText(summary);
+    }
+
+    function youStep() {
+      return `<h2>Who should we ask</h2>
+        <p class="step-help">One person who knows support policy can fill this in. About 12 minutes.</p>
+        <div class="grid-2">
+          <label class="field"><span class="req">Your name</span><input name="name" type="text" value="${esc(state.name)}" required></label>
+          <label class="field"><span class="req">Your email</span><input name="email" type="email" value="${esc(state.email)}" required></label>
+        </div>
+        <label class="field"><span class="req">Your role</span><input name="role" type="text" value="${esc(state.role)}" placeholder="For example, Customer service lead"></label>
+        <h3>Shopify connection</h3>
+        <p class="step-help">All seven Shopify stores in Gorgias still need a permissions update before the AI can see orders. Who can approve that?</p>
+        <div class="grid-2">
+          <label class="field"><span class="req">Name</span><input name="shopifyName" type="text" value="${esc(state.shopifyName)}"></label>
+          <label class="field"><span class="req">Email</span><input name="shopifyEmail" type="email" value="${esc(state.shopifyEmail)}"></label>
+        </div>`;
+    }
+
+    function brandsStep() {
+      const rows = BRANDS.map((b) => `<div class="brand-row">
+        <strong>${esc(b.name)}</strong>
+        ${radios("scope-" + b.id, state.scope[b.id], [
+          ["full", "Full AI", b.def === "full"],
+          ["narrow", "Orders only", b.def === "narrow"],
+          ["later", "Not in these 2 months", b.def === "later"]
+        ])}
+      </div>`).join("");
+      return `<h2>Which brands are in this build</h2>
+        <p class="step-help">Full AI means the help center and the AI Agent answer customers. Orders only means a narrower agent for tracking, delivery and account questions, with pricing left to a person. The suggestion follows ticket volume. Change anything that is wrong.</p>
+        ${rows}
+        <label class="checkline"><input type="checkbox" name="scopeOk" ${state.scopeOk ? "checked" : ""}> <span class="req">This split is right</span></label>`;
+    }
+
+    function casesStep() {
+      const rows = CASES.map((c) => `<div class="case">
+        <div><strong>${esc(c[1])}</strong>${c[3] ? `<span class="hint">${esc(c[3])}</span>` : ""}</div>
+        ${radios("case-" + c[0], state.cases[c[0]], [
+          ["close", "AI replies and closes", c[2] === "close"],
+          ["draft", "AI drafts, a person sends", c[2] === "draft"],
+          ["human", "Always a person", c[2] === "human"]
+        ])}
+      </div>`).join("");
+      return `<h2>What the AI may handle</h2>
+        <p class="step-help">These rules apply to every brand in the build, unless you name an exception later. Suggested answers are already selected. Change the row if you disagree.</p>
+        ${rows}
+        <label class="checkline"><input type="checkbox" name="casesOk" ${state.casesOk ? "checked" : ""}> <span class="req">I have checked this table</span></label>`;
+    }
+
+    function moneyStep() {
+      return `<h2>Refunds, photos, and offers</h2>
+        <p class="step-help">The AI will not invent a discount code. Shopping Assistant stays off.</p>
+        <fieldset>
+          <legend class="req">May the AI promise a refund or a replacement by itself?</legend>
+          ${radios("aiRefund", state.aiRefund, [
+            ["never", "No. A person decides every remedy."],
+            ["under", "Only under a set amount, and only for the cases allowed above."]
+          ])}
+          <label class="field">Maximum pounds, if you chose a set amount
+            <input name="refundLimit" type="number" min="1" step="1" value="${esc(state.refundLimit)}" placeholder="For example, 40">
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend class="req">For a damaged box or thawed food, are photos required before any remedy?</legend>
+          ${radios("photos", state.photos, [["yes", "Yes"], ["no", "No"]])}
+        </fieldset>
+        <fieldset>
+          <legend class="req">May the AI mention a discount or an offer?</legend>
+          ${radios("discount", state.discount, [
+            ["no", "No. Never mention a code or a percent.", true],
+            ["later", "Only when Artikuno is given the current offer in writing."],
+            ["yes", "Yes. There is a standing public offer."]
+          ])}
+          <label class="field">Standing offer, only if you chose yes
+            <textarea name="discountNote" placeholder="What it is, which brands, and when it ends.">${esc(state.discountNote)}</textarea>
+          </label>
+        </fieldset>
+        <fieldset>
+          <legend class="req">Should replies say they were written by AI?</legend>
+          ${radios("disclose", state.disclose, [["yes", "Yes. Keep a short AI line in the signature.", true], ["no", "No"]])}
+        </fieldset>
+        <fieldset>
+          <legend class="req">Tone of voice already saved in Gorgias</legend>
+          <p class="step-help">Natural Instinct, Nutriment, Your Pet Nutrition, The Dogs Butcher and Natural Treats already have a tone written in the AI settings. We will keep those unless you want a change.</p>
+          ${radios("tone", state.tone, [["keep", "Keep what is saved", true], ["change", "Change it"]])}
+          <label class="field">What should change?<textarea name="toneNote">${esc(state.toneNote)}</textarea></label>
+        </fieldset>
+        <fieldset>
+          <legend class="req">Names already used by the AI</legend>
+          <p class="step-help">Arlo for Your Pet Nutrition, Eden for The Dogs Butcher, Clara for Nutriment and Natural Treats. Natural Instinct has a tone but no separate first name saved.</p>
+          ${radios("names", state.names, [["keep", "Keep these names", true], ["change", "Use different names"]])}
+          <label class="field">Names to use<textarea name="namesNote" placeholder="Brand — name">${esc(state.namesNote)}</textarea></label>
+        </fieldset>`;
+    }
+
+    function policiesStep() {
+      const blocks = [];
+      for (const [id, policy] of Object.entries(POLICIES)) {
+        if (!activeIds().includes(id)) continue;
+        const cur = state.policies[id] || {};
+        blocks.push(`<div class="policy"><strong>${esc(policy.title)}</strong><p>${policy.html}</p>
+          ${radios("pol-" + id, cur.choice || "", [["ok", "This is correct. Use it."], ["change", "Something needs a change."]])}
+          <label class="field">What is wrong or missing, if it needs a change<textarea name="polnote-${id}">${esc(cur.note || "")}</textarea></label>
+        </div>`);
+      }
+      for (const [id, title] of Object.entries(GAPS)) {
+        if (!activeIds().includes(id)) continue;
+        const cur = state.gaps[id] || {};
+        blocks.push(`<div class="policy"><strong>${esc(title)}</strong>
+          ${radios("gap-" + id, cur.choice || "", [
+            ["ni", "Use the Natural Instinct rules"],
+            ["nr", "Use the Nutriment customer rules"],
+            ["link", "Use this link"],
+            ["text", "There is no page. Use the note below."]
+          ])}
+          <label class="field">Link or rule<textarea name="gapnote-${id}">${esc(cur.note || "")}</textarea></label>
+        </div>`);
+      }
+      return `<h2>Check the pages we found</h2>
+        <p class="step-help">Only brands you included above are listed. Say if a page is out of date. You do not need to rewrite a page that is already right.</p>
+        ${blocks.join("") || "<p>No brands selected.</p>"}
+        <fieldset>
+          <legend class="req">Do all of the selected brands follow the handling table you just approved?</legend>
+          ${radios("sameRules", state.sameRules, [
+            ["yes", "Yes. Same rules for every selected brand."],
+            ["no", "No. Some brands differ."]
+          ])}
+          <label class="field">Which brands differ, and how?<textarea name="differNote" placeholder="For example: Dogs Butcher will reship thawed food. Nutriment will not.">${esc(state.differNote)}</textarea></label>
+        </fieldset>`;
+    }
+
+    function hoursStep() {
+      const rows = activeIds().map((id) => {
+        const brand = BRANDS.find((b) => b.id === id);
+        if (HOURS[id]) {
+          return `<div class="policy"><strong>${esc(brand.name)}</strong>
+            <p>${esc(HOURS[id])}</p>
+            ${radios("hours-" + id, state.hoursOk[id] || "", [["ok", "Customers can be told this."], ["change", "Use different hours."]])}
+            <label class="field">Correct hours<input name="hourstext-${id}" type="text" value="${esc(state.hoursText[id] || "")}" placeholder="Monday–Friday 9:00–17:00"></label>
+          </div>`;
+        }
+        return `<label class="field"><span class="req">${esc(brand.name)} — hours customers should be told</span>
+          <input name="hourstext-${id}" type="text" value="${esc(state.hoursText[id] || "")}" placeholder="Monday–Friday 9:00–17:00, closed weekends">
+          <span class="hint">We could not confirm this from the website.</span>
+        </label>`;
+      }).join("");
+      return `<h2>Hours and who receives handovers</h2>
+        <p class="step-help">One line of hours per brand. Then the inboxes that should receive anything the AI is not allowed to finish.</p>
+        ${rows}
+        <div class="grid-2">
+          <label class="field"><span class="req">Email for customer-brand handovers</span><input name="handoverD2c" type="email" value="${esc(state.handoverD2c)}"></label>
+          <label class="field">${needsTrade() ? '<span class="req">Email for trade and stockist handovers</span>' : "Email for trade and stockist handovers"}<input name="handoverTrade" type="email" value="${esc(state.handoverTrade)}"></label>
+        </div>
+        <label class="field"><span class="req">Who approves the AI before it is switched on? Email</span><input name="approver" type="email" value="${esc(state.approver)}"></label>`;
+    }
+
+    function reviewStep() {
+      const payload = exportPayload();
+      return `<h2>Review and send</h2>
+        <p class="step-help">Check this summary. Send it when it is right. A copy also stays in the email to Artikuno.</p>
+        <div class="summary">${esc(toSummary(payload))}</div>`;
+    }
+
+    function exportPayload() {
+      const brands = {};
+      BRANDS.forEach((b) => {
+        brands[b.name] = {
+          scope: state.scope[b.id],
+          policy: state.policies[b.id] || null,
+          gap: state.gaps[b.id] || null,
+          hoursChoice: state.hoursOk[b.id] || null,
+          hours: state.hoursText[b.id] || (state.hoursOk[b.id] === "ok" ? HOURS[b.id] : "")
+        };
+      });
+      const handling = {};
+      CASES.forEach((c) => { handling[c[1]] = CASE_LABEL[state.cases[c[0]]] || state.cases[c[0]]; });
+      return {
+        v: 1,
+        submittedHint: new Date().toISOString(),
+        name: state.name, email: state.email, role: state.role,
+        shopifyContact: { name: state.shopifyName, email: state.shopifyEmail },
+        handling, handlingConfirmed: state.casesOk,
+        aiMayPromiseRemedy: state.aiRefund,
+        remedyLimitGbp: state.aiRefund === "under" ? Number(state.refundLimit) : null,
+        photosRequiredForDamage: state.photos,
+        discounts: state.discount, discountNote: state.discountNote,
+        discloseAi: state.disclose,
+        tone: state.tone, toneNote: state.toneNote,
+        names: state.names, namesNote: state.namesNote,
+        sameRulesForAllBrands: state.sameRules, differences: state.differNote,
+        handoverD2c: state.handoverD2c, handoverTrade: state.handoverTrade, approver: state.approver,
+        brands
+      };
+    }
+
+    function toSummary(p) {
+      const lines = [];
+      lines.push("Gorgias setup answers — The Nutriment Company");
+      lines.push(p.name + " · " + p.role + " · " + p.email);
+      lines.push("Shopify permissions: " + p.shopifyContact.name + " · " + p.shopifyContact.email);
+      lines.push("");
+      lines.push("AI may promise a remedy: " + (p.aiMayPromiseRemedy === "under" ? "under £" + p.remedyLimitGbp : "no"));
+      lines.push("Photos for damage or thaw: " + p.photosRequiredForDamage);
+      lines.push("Discounts: " + p.discounts + (p.discountNote ? " — " + p.discountNote : ""));
+      lines.push("Say it is AI: " + p.discloseAi);
+      lines.push("Tone: " + p.tone + (p.toneNote ? " — " + p.toneNote : ""));
+      lines.push("Names: " + p.names + (p.namesNote ? " — " + p.namesNote : ""));
+      lines.push("Same rules for every selected brand: " + p.sameRulesForAllBrands);
+      if (p.differences) lines.push("Differences: " + p.differences);
+      lines.push("Customer handover: " + p.handoverD2c);
+      lines.push("Trade handover: " + (p.handoverTrade || "—"));
+      lines.push("Approver: " + p.approver);
+      lines.push("");
+      lines.push("Handling");
+      Object.entries(p.handling).forEach(([k, v]) => lines.push("- " + k + ": " + v));
+      lines.push("");
+      lines.push("Brands");
+      Object.entries(p.brands).forEach(([name, b]) => {
+        if (b.scope === "later") { lines.push("- " + name + ": not in these 2 months"); return; }
+        lines.push("- " + name + " · " + (b.scope === "full" ? "full AI" : "orders only"));
+        if (b.policy) lines.push("  Policy: " + b.policy.choice + (b.policy.note ? " — " + b.policy.note : ""));
+        if (b.gap) lines.push("  Missing public policy: " + b.gap.choice + (b.gap.note ? " — " + b.gap.note : ""));
+        if (b.hours) lines.push("  Hours: " + b.hours);
+      });
+      return lines.join("\n");
+    }
+
+    if (location.hash === "#review") {
+      document.querySelector("header .lede").textContent = "Paste a submitted answers JSON to read it as a setup brief.";
+      document.getElementById("progress").innerHTML = "";
+      document.getElementById("form").innerHTML = `
+        <h2>Review a response</h2>
+        <label class="field">Paste answers_json<textarea id="paste" style="min-height:180px"></textarea></label>
+        <button type="button" class="primary" id="renderPaste">Show brief</button>
+        <div id="brief" class="summary" style="margin-top:14px"></div>`;
+      document.getElementById("renderPaste").onclick = () => {
+        try {
+          const data = JSON.parse(document.getElementById("paste").value);
+          document.getElementById("brief").textContent = data.handling ? toSummary(data) : "That JSON is not a questionnaire response.";
+        } catch (e) {
+          document.getElementById("brief").textContent = "Could not read that JSON.";
+        }
+      };
+    } else {
+      render();
+    }
+  </script>
+</body>
+</html>
