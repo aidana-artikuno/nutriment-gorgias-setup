@@ -220,7 +220,9 @@
       ["trade", "Trade price, credit terms, or opening a wholesale account", "human", ""],
       ["stockist", "New stockist application", "human", ""],
       ["discount", "Discount code, price match, or current offer", "human", ""],
-      ["angry", "Legal threat, press, or a very angry complaint", "human", ""]
+      ["angry", "Legal threat, press, or a very angry complaint", "human", ""],
+      ["sub", "Pause, skip, cancel, or bring a subscription forward", "human", ""],
+      ["login", "Password, login, or account access", "human", ""]
     ];
 
     const POLICIES = {
@@ -269,6 +271,7 @@
       ["Refunds and offers", "money"],
       ["Check the public policies", "policies"],
       ["Hours and handover", "hours"],
+      ["Chat, help center, macros", "channels"],
       ["Anything else", "extra"],
       ["Review and send", "review"]
     ];
@@ -290,6 +293,9 @@
         policies: {}, gaps: {}, hoursOk: {}, hoursText: {},
         sameRules: "", differNote: "",
         handoverD2c: "", handoverTrade: "", approver: "",
+        channels: "both", helpPublish: "after", knowledge: "",
+        signoff: "team", signoffNote: "", macroNames: "", macroNamesNote: "", macroKeep: "",
+        nntFrom: "", phone: "", sla: "", shopifyScope: "", shopifyNote: "",
         extra: ""
       };
     }
@@ -341,6 +347,7 @@
         <section class="section" id="s-money">${moneyStep()}</section>
         <section class="section" id="s-policies">${policiesStep()}</section>
         <section class="section" id="s-hours">${hoursStep()}</section>
+        <section class="section" id="s-channels">${channelsStep()}</section>
         <section class="section" id="s-extra">${extraStep()}</section>
         <div class="actions">
           <button type="button" class="primary" id="next">Send answers</button>
@@ -404,6 +411,19 @@
       state.handoverD2c = val("handoverD2c");
       state.handoverTrade = val("handoverTrade");
       state.approver = val("approver");
+      state.channels = picked("channels") || state.channels;
+      state.helpPublish = picked("helpPublish") || state.helpPublish;
+      state.knowledge = val("knowledge");
+      state.signoff = picked("signoff") || state.signoff;
+      state.signoffNote = val("signoffNote");
+      state.macroNames = picked("macroNames");
+      state.macroNamesNote = val("macroNamesNote");
+      state.macroKeep = val("macroKeep");
+      state.nntFrom = val("nntFrom");
+      state.phone = val("phone");
+      state.sla = val("sla");
+      state.shopifyScope = picked("shopifyScope");
+      state.shopifyNote = val("shopifyNote");
       state.extra = val("extra");
       save();
     }
@@ -461,6 +481,12 @@
       }
       if (!emailOk(state.handoverD2c) || !emailOk(state.approver)) return "Add the handover and approver email addresses.";
       if (needsTrade() && !emailOk(state.handoverTrade)) return "Add the trade and stockist handover email.";
+      if (!state.channels || !state.helpPublish || !state.signoff || !state.macroNames || !state.shopifyScope) return "Please answer every required question.";
+      if (!state.knowledge) return "Add the pages or files the AI and help center must follow, or write that the website is enough.";
+      if (state.signoff === "other" && !state.signoffNote) return "Tell us how a person’s reply should be signed.";
+      if (state.macroNames === "no" && !state.macroNamesNote) return "Describe the macro naming pattern you want.";
+      if (state.shopifyScope === "no" && !state.shopifyNote) return "Name who can approve Shopify for the stores this contact cannot.";
+      if (activeIds().includes("nnt") && !emailOk(state.nntFrom)) return "Add the email address Natural Treats customer replies should come from.";
       return "";
     }
 
@@ -567,7 +593,7 @@
           <textarea name="others" placeholder="Name and email. One person per line. Leave blank if you are answering the whole form.">${esc(state.others)}</textarea>
         </label>
         <h3>Shopify connection</h3>
-        <p class="step-help">All seven Shopify stores in Gorgias still need a permissions update before the AI can see orders. Who can approve that?</p>
+        <p class="step-help">Gorgias already receives orders and tracking. Shopify still shows a permissions update on the app, and someone has to approve it in Shopify so nothing is blocked later. Who can do that?</p>
         <div class="grid-2">
           <label class="field"><span class="req">Name</span><input name="shopifyName" type="text" value="${esc(state.shopifyName)}"></label>
           <label class="field"><span class="req">Email</span><input name="shopifyEmail" type="email" value="${esc(state.shopifyEmail)}"></label>
@@ -710,6 +736,72 @@
         <label class="field"><span class="req">Who approves the AI before it is switched on? Email</span><input name="approver" type="email" value="${esc(state.approver)}"></label>`;
     }
 
+    function channelsStep() {
+      const nntOn = activeIds().includes("nnt");
+      return `<h2>Chat, help center, and macros</h2>
+        <p class="step-help">Answer these once. We use them to finish the help center, the chat, and the macro library after you approve, without asking again.</p>
+        <fieldset>
+          <legend class="req">Once you approve the drafts, where should the AI reply?</legend>
+          ${radios("channels", state.channels, [
+            ["both", "Email and live chat", true],
+            ["email", "Email only"],
+            ["chat", "Live chat only"]
+          ])}
+        </fieldset>
+        <fieldset>
+          <legend class="req">Help center articles</legend>
+          <p class="step-help">We draft articles from the policies you confirm above, for every brand you marked Full AI. Nothing goes live before it is approved.</p>
+          ${radios("helpPublish", state.helpPublish, [
+            ["after", "Send us the drafts. We approve them, then you publish.", true],
+            ["you", "You may publish once this form is approved."]
+          ])}
+        </fieldset>
+        <label class="field"><span class="req">Pages or files the AI and help center must follow, beyond the policy links above</span>
+          <textarea name="knowledge" placeholder="One per line: brand, then the link or the file name. Write “the website is enough” if there is nothing else. Feeding guides, storage, subscription terms, and guarantee pages belong here.">${esc(state.knowledge)}</textarea>
+        </label>
+        <fieldset>
+          <legend class="req">How should a reply written by a person be signed?</legend>
+          ${radios("signoff", state.signoff, [
+            ["team", "The [brand] team", true],
+            ["names", "The same first names as the AI"],
+            ["other", "Something else"]
+          ])}
+          <label class="field">If something else, the sign-off<textarea name="signoffNote">${esc(state.signoffNote)}</textarea></label>
+        </fieldset>
+        <fieldset>
+          <legend class="req">Macro names</legend>
+          <p class="step-help">Example: NI | Order | Where is my order (with tracking). An agent types the brand and sees only that brand. Macros the team already uses keep their current names until you say these work.</p>
+          ${radios("macroNames", state.macroNames, [
+            ["yes", "Use Brand | Topic | What it does."],
+            ["no", "Use a different pattern."]
+          ])}
+          <label class="field">The pattern you want, if you chose a different one<textarea name="macroNamesNote">${esc(state.macroNamesNote)}</textarea></label>
+          <label class="field">Macros we must not rename
+            <textarea name="macroKeep" placeholder="Optional. Leave blank if the team will confirm the most-used names separately.">${esc(state.macroKeep)}</textarea>
+          </label>
+        </fieldset>
+        <label class="field">${nntOn ? '<span class="req">Natural Treats — email address customer replies should come from</span>' : "Natural Treats — email address customer replies should come from"}
+          <input name="nntFrom" type="email" value="${esc(state.nntFrom)}" placeholder="name@naturaltreats…">
+          <span class="hint">Only if Natural Treats is in this build. Its AI settings currently point at the Pet Treats Wholesale mailbox.</span>
+        </label>
+        <fieldset>
+          <legend class="req">Can the Shopify contact above approve every D2C store?</legend>
+          ${radios("shopifyScope", state.shopifyScope, [
+            ["yes", "Yes. Every D2C store."],
+            ["no", "No. Some stores need someone else."]
+          ])}
+          <label class="field">Who approves which store, if not<textarea name="shopifyNote">${esc(state.shopifyNote)}</textarea></label>
+        </fieldset>
+        <div class="grid-2">
+          <label class="field">Phone number customers may be given
+            <input name="phone" type="text" value="${esc(state.phone)}" placeholder="Leave blank if we should not give a number">
+          </label>
+          <label class="field">Reply-time promise, if you make one
+            <input name="sla" type="text" value="${esc(state.sla)}" placeholder="We reply within one working day">
+          </label>
+        </div>`;
+    }
+
     function extraStep() {
       const files = pendingFiles.map((file, i) => `<li>
           <span>${esc(file.name)}</span>
@@ -764,6 +856,11 @@
         names: state.names, namesNote: state.namesNote,
         sameRulesForAllBrands: state.sameRules, differences: state.differNote,
         handoverD2c: state.handoverD2c, handoverTrade: state.handoverTrade, approver: state.approver,
+        channels: state.channels, helpPublish: state.helpPublish, knowledge: state.knowledge,
+        signoff: state.signoff, signoffNote: state.signoffNote,
+        macroNames: state.macroNames, macroNamesNote: state.macroNamesNote, macroKeep: state.macroKeep,
+        nntFrom: state.nntFrom, phone: state.phone, sla: state.sla,
+        shopifyScope: state.shopifyScope, shopifyNote: state.shopifyNote,
         extra: state.extra,
         attachments: pendingFiles.map((file) => file.name),
         brands
@@ -788,6 +885,16 @@
       lines.push("Customer handover: " + p.handoverD2c);
       lines.push("Trade handover: " + (p.handoverTrade || "—"));
       lines.push("Approver: " + p.approver);
+      lines.push("AI replies on: " + (p.channels || "—"));
+      lines.push("Help center: " + (p.helpPublish === "you" ? "publish once this form is approved" : "drafts come back for approval"));
+      lines.push("Knowledge: " + (p.knowledge || "—"));
+      lines.push("Person’s sign-off: " + p.signoff + (p.signoffNote ? " — " + p.signoffNote : ""));
+      lines.push("Macro names: " + p.macroNames + (p.macroNamesNote ? " — " + p.macroNamesNote : ""));
+      if (p.macroKeep) lines.push("Do not rename: " + p.macroKeep);
+      lines.push("Natural Treats replies from: " + (p.nntFrom || "—"));
+      lines.push("Phone: " + (p.phone || "Do not give a number"));
+      lines.push("Reply time: " + (p.sla || "—"));
+      lines.push("Shopify approver covers every D2C store: " + (p.shopifyScope || "—") + (p.shopifyNote ? " — " + p.shopifyNote : ""));
       lines.push("");
       lines.push("Anything else");
       lines.push(p.extra || "—");
